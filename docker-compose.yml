@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # ============ ProductService ============
+  productservice:
+    build:
+      context: .  # Корень решения
+      dockerfile: ProductService/Dockerfile  # Путь к Dockerfile
+    ports:
+      - "5001:80"  # Пробрасываем порт 80 контейнера на 5001 хоста
+    networks:
+      - microservices-net  # Подключаем к сети
+
+
+  # ============ OrderService ============
+  orderservice:
+    build:
+      context: .
+      dockerfile: OrderService/Dockerfile
+    ports:
+      - "5002:80"
+    networks:
+      - microservices-net
+    depends_on:
+      - productservice  # Зависимость от ProductService
+    environment:
+      - ProductService__BaseUrl=http://productservice:80  # URL для HTTP-клиента
+
+  # ============ NotificationService ============
+  notificationservice:
+    build:
+      context: .
+      dockerfile: NotificationService/Dockerfile
+    ports:
+      - "5003:80"
+    networks:
+      - microservices-net
+
+  # ============ API Gateway (Ocelot) ============
+  apigateway:
+    build:
+      context: .
+      dockerfile: ApiGateway/Dockerfile
+    ports:
+      - "5000:80"  # Основной порт для доступа извне
+    networks:
+      - microservices-net
+    depends_on:
+      - productservice
+      - orderservice
+      - notificationservice
+
+# Общая сеть для всех сервисов
+networks:
+  microservices-net:
+    driver: bridge
